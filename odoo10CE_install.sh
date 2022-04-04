@@ -22,7 +22,7 @@ OE_HOME="/app/code"
 OE_HOME_EXT="$OE_HOME/${OE_USER}-server"
 #The default port where this Odoo instance will run under (provided you use the command -c in the terminal)
 #Set to true if you want to install it, false if you don't need it or have it already installed.
-INSTALL_WKHTMLTOPDF="False"
+INSTALL_WKHTMLTOPDF="True"
 #Set the default Odoo port (you still have to use -c /etc/odoo-server.conf for example to use this.)
 OE_PORT="8069"
 #Choose the Odoo version which you want to install. For example: 10.0, 9.0, 8.0, 7.0 or saas-6. When using 'trunk' the master version will be installed.
@@ -43,6 +43,14 @@ OE_CONFIG="${OE_USER}"
 #WKHTMLTOX_X32=http://download.gna.org/wkhtmltopdf/0.12/0.12.2.1/wkhtmltox-0.12.2.1_linux-jessie-i386.deb
 WKHTMLTOX_X64=https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.2.1/wkhtmltox-0.12.2.1_linux-jessie-amd64.deb
 WKHTMLTOX_X32=https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.2.1/wkhtmltox-0.12.2.1_linux-jessie-i386.deb
+
+## Package libjpeg62-turbo need to be install from debian sid on ubuntu xenial 16.04
+LIBJPEG62_X64=http://ftp.fr.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_1.5.2-2+b1_amd64.deb
+LIBJPEG62_X32=http://ftp.fr.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_1.5.2-2+b1_i386.deb
+
+
+## Installing extra-modules
+SERVER_TOOLS=https://github.com/OCA/server-tools
 
 #--------------------------------------------------
 # Update Server
@@ -65,7 +73,7 @@ sudo su - postgres -c "createuser -s $OE_USER" 2> /dev/null || true
 # Install Dependencies
 #--------------------------------------------------
 echo -e "\n---- Install tool packages ----"
-sudo apt-get install wget git python-pip gdebi-core libjpeg62-turbo -y
+sudo apt-get install wget git python-pip gdebi-core -y
 	
 echo -e "\n---- Install python packages ----"
 sudo apt-get install python-dateutil python-feedparser python-ldap python-libxslt1 python-lxml python-mako python-openid python-psycopg2 python-pybabel python-pychart python-pydot python-pyparsing python-reportlab python-simplejson python-tz python-vatnumber python-vobject python-webdav python-werkzeug python-xlwt python-yaml python-zsi python-docutils python-psutil python-mock python-unittest2 python-jinja2 python-pypdf python-decorator python-requests python-passlib python-pil -y python-suds
@@ -88,13 +96,16 @@ if [ $INSTALL_WKHTMLTOPDF = "True" ]; then
   echo -e "\n---- Install wkhtml and place shortcuts on correct place for ODOO 10 ----"
   #pick up correct one from x64 & x32 versions:
   if [ "`getconf LONG_BIT`" == "64" ];then
-      _url=$WKHTMLTOX_X64
+      _url_wkhtml=$WKHTMLTOX_X64
+      _url_libjpeg=$LIBJPEG62_X64
   else
-      _url=$WKHTMLTOX_X32
+      _url_wkhtml=$WKHTMLTOX_X32
+      _url_libjpeg=$LIBJPEG62_X32
   fi
-  sudo wget $_url
-  sudo apt-get install gdebi-core -y
-  sudo gdebi --n `basename $_url`
+  sudo wget $_url_wkhtml
+  sudo wget $_url_libjpeg
+  sudo gdebi --n `basename $_url_libjpeg`
+  sudo gdebi --n `basename $_url_wkhtml`
   sudo ln -s /usr/local/bin/wkhtmltopdf /usr/bin
   sudo ln -s /usr/local/bin/wkhtmltoimage /usr/bin
 else
@@ -157,13 +168,32 @@ if [  $IS_ENTERPRISE = "True" ]; then
     sudo su root -c "echo 'addons_path=$OE_HOME/enterprise/addons,$OE_HOME_EXT/addons' >> /app/data/${OE_CONFIG}.conf"
 else
 #    sudo su root -c "echo 'addons_path=$OE_HOME_EXT/addons,$OE_HOME/custom/addons' >> /etc/${OE_CONFIG}.conf"
-    sudo su root -c "echo 'addons_path=$OE_HOME_EXT/addons,$OE_HOME/extra-addons' >> /app/data/${OE_CONFIG}.conf"
+    sudo su root -c "echo 'addons_path=$OE_HOME_EXT/addons,$OE_HOME/extra-addons,/app/data/addons/server-tools' >> /app/data/${OE_CONFIG}.conf"
 fi
 
 echo -e "* Create startup file"
 sudo su root -c "echo '#!/bin/sh' >> $OE_HOME_EXT/start-odoo.sh"
 sudo su root -c "echo 'sudo -u $OE_USER $OE_HOME_EXT/odoo-bin --config=/app/data/${OE_CONFIG}.conf' >> $OE_HOME_EXT/start-odoo.sh"
 sudo chmod 755 $OE_HOME_EXT/start-odoo.sh
+
+
+#--------------------------------------------------
+# Install ODOO ADDONS
+#--------------------------------------------------
+echo -e "\n==== Installing ODOO ADDONS ===="
+
+echo -e "\n---- Install python libraries ----"
+sudo pip install python-ldap unidecode acme_tiny IPy email_validator pyotp pysftp fdb sqlalchemy raven checksumdir python-stdnum pyopenssl odoorpc
+
+echo -e "\n---- Create custom module directory ----"
+sudo su $OE_USER -c "mkdir /app/data/addons/server-tools"
+
+sudo git clone --depth 1 --branch 10.0 $SERVER_TOOLS "/app/data/addons/server-tools"
+
+echo -e "\n---- Setting permissions on addons folder ----"
+sudo chown -R $OE_USER:$OE_USER /app/data/addons/*
+
+
 
 #--------------------------------------------------
 # Adding ODOO as a deamon (initscript)

@@ -1,11 +1,11 @@
 {
-  "id": "com.odoo-ce.community.cloudronapp",
+  "id": "com.odoo10ce.community.cloudronapp",
   "title": "Odoo Community",
   "author": "Odoo",
   "description": "file://DESCRIPTION.md",
   "changelog": "file://CHANGELOG",
   "postInstallMessage": "file://POSTINSTALL.md",
-  "tagline": "One-line description",
+  "tagline": "manage your organisation",
   "version": "0.1.0",
   "healthCheckPath": "/",
   "httpPort": 8069,
