@@ -1,0 +1,4 @@
+
+We need to install pip2 in order to pip install passlib
+see :
+https://github.com/odoo/odoo/issues/16451

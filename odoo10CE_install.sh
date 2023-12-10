@@ -52,6 +52,18 @@ LIBJPEG62_X32=http://ftp.fr.debian.org/debian/pool/main/libj/libjpeg-turbo/libjp
 ## Installing extra-modules
 SERVER_TOOLS=https://github.com/OCA/server-tools
 
+
+#--------------------------------------------------
+# Install pip2 for python2
+# We need to install pip2 in order to pip install passlib
+# see https://github.com/odoo/odoo/issues/16451
+#--------------------------------------------------
+
+echo -e "\n---- Install pip2 ----"
+wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
+python2 get-pip.py
+
+
 #--------------------------------------------------
 # Update Server
 #--------------------------------------------------
@@ -83,6 +95,9 @@ pip install --upgrade pip
 
 echo -e "\n---- Install python libraries ----"
 sudo pip install gdata psycogreen ofxparse XlsxWriter
+
+echo -e "\n---- Install python packages/requirements ----"
+sudo pip install -r https://github.com/odoo/odoo/raw/${OE_VERSION}/requirements.txt
 
 echo -e "\n--- Install other required packages"
 sudo apt-get install node-clean-css -y

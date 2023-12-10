@@ -1,0 +1,17 @@
+--- sql_db_odoo10.py	2023-10-20 21:11:45.809064244 +0200
++++ sql_db_odoo10patched.py	2023-10-23 19:37:36.573510946 +0200
+@@ -677,8 +677,12 @@
+             db_name = us.hostname
+         return db_name, {'dsn': db_or_uri}
+ 
+-    connection_info = {'database': db_or_uri}
+-    for p in ('host', 'port', 'user', 'password'):
++    # patch to connect with database name only 
++    # psycopg2 bug: using a dsn together with dbname causes an error
++    # connection_info = {'database': db_or_uri}
++
++    connection_info = {}
++    for p in ('host', 'port', 'user', 'password', 'dbname'):
+         cfg = tools.config['db_' + p]
+         if cfg:
+             connection_info[p] = cfg
